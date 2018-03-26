@@ -31,7 +31,7 @@ namespace ImageFilter
                 throw new ArgumentNullException("extensions");
             }
 
-            var files = directory.GetFiles();
+            FileInfo[] files = directory.GetFiles();
             return files.Where(f => extensions.Contains(f.Extension, StringComparer.OrdinalIgnoreCase));
         }
     }

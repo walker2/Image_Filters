@@ -23,9 +23,9 @@ namespace ImageFilter
             int height = src.Height;
             var dest = new Bitmap(width, height, src.PixelFormat);
 
-            using (var srcBMP = new FastBitmap(src))
+            using (var srcBMP = new ConcurrentBitmap(src))
             {
-                using (var newBMP = new FastBitmap(dest))
+                using (var newBMP = new ConcurrentBitmap(dest))
                 {
                     // For each line
                     Parallel.For(

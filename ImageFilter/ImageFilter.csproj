@@ -67,7 +67,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Extensions\Extensions.cs" />
-    <Compile Include="FastBitmap.cs" />
+    <Compile Include="ConcurrentBitmap.cs" />
+    <Compile Include="Filters\BoxFilter.cs" />
+    <Compile Include="Filters\GaussFilter.cs" />
     <Compile Include="IPictureProcessor.cs" />
     <Compile Include="Noises\GaussNoise.cs" />
     <Compile Include="ImageLoader.cs" />
@@ -76,6 +78,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestImages.cs" />
+    <Compile Include="Tranformation.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

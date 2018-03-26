@@ -75,6 +75,7 @@ namespace ImageFilter.Tests
                         ImageAssert.AssertImagesAreDifferent(image, imageLoader.Image);
                         imageLoader.Image = image;
                     }
+
                     //File.Delete(outputFileName);
                 }
             }
@@ -87,8 +88,53 @@ namespace ImageFilter.Tests
             var plotModel = new PlotModel {Title = "Test Plot"};
             plotModel.Series.Add(new FunctionSeries(Math.Cos, 0, 10, 0.1, "cos(x)"));
             var pngExporter = new PngExporter {Width = 1280, Height = 720, Background = OxyColors.White};
+
             pngExporter.ExportToFile(plotModel, $"{OutputPath}/test.png");
             Assert.IsTrue(File.Exists($"{OutputPath}/test.png"));
+        }
+
+        [Test]
+        public void BoxFilter_Is_Applied()
+        {
+            foreach (FileInfo file in TestImages.GetTestImagesFromTestFolder(""))
+            {
+                string outputFileName = $"{OutputPath}{file.Name.Substring(0, file.Name.LastIndexOf('.'))}";
+
+                using (var imageLoader = new ImageLoader())
+                {
+                    imageLoader.Load(file.FullName);
+                    Image image = imageLoader.Image;
+                    string fileName = $"{outputFileName}_boxFilter{file.Extension}";
+
+                    imageLoader.AddBoxFilter(5);
+                    imageLoader.Save(fileName);
+
+                    Assert.IsTrue(File.Exists(fileName));
+                    ImageAssert.AssertImagesAreDifferent(image, imageLoader.Image);
+                }
+            }
+        }
+
+        [Test]
+        public void GaussFilter_Is_Applied()
+        {
+            foreach (FileInfo file in TestImages.GetTestImagesFromTestFolder(""))
+            {
+                string outputFileName = $"{OutputPath}{file.Name.Substring(0, file.Name.LastIndexOf('.'))}";
+
+                using (var imageLoader = new ImageLoader())
+                {
+                    imageLoader.Load(file.FullName);
+                    Image image = imageLoader.Image;
+                    string fileName = $"{outputFileName}_gaussFilter{file.Extension}";
+
+                    imageLoader.AddGaussFilter(5, 1.4);
+                    imageLoader.Save(fileName);
+
+                    Assert.IsTrue(File.Exists(fileName));
+                    ImageAssert.AssertImagesAreDifferent(image, imageLoader.Image);
+                }
+            }
         }
     }
 }

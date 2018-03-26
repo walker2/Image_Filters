@@ -26,9 +26,9 @@ namespace ImageFilter.Noises
 
             System.Random rng = SystemRandomSource.Default;
 
-            using (var srcBMP = new FastBitmap(src))
+            using (var srcBMP = new ConcurrentBitmap(src))
             {
-                using (var newBMP = new FastBitmap(dest))
+                using (var newBMP = new ConcurrentBitmap(dest))
                 {
                     // For each line
                     Parallel.For(

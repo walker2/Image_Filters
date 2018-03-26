@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Drawing;
-using System.Threading.Tasks;
-using ImageFilter.Extensions;
+using System.IO;
+using ImageFilter.Filters;
 using ImageFilter.Noises;
 
 namespace ImageFilter
@@ -13,7 +10,7 @@ namespace ImageFilter
     {
         #region Fields
 
-        private bool isDisposed = false;
+        private bool isDisposed;
 
         #endregion
 
@@ -35,9 +32,9 @@ namespace ImageFilter
             int height = image.Height;
 
             double psnrY = 0;
-            using (var img1BMP = new FastBitmap(img1))
+            using (var img1BMP = new ConcurrentBitmap(img1))
             {
-                using (var img2BMP = new FastBitmap(img2))
+                using (var img2BMP = new ConcurrentBitmap(img2))
                 {
                     // For each line
                     for (var y = 0; y < height; y++)
@@ -49,19 +46,19 @@ namespace ImageFilter
 
                             // Assumes that img2 is not in Y component
                             Color tmpColor = img2BMP.GetPixel(x, y);
-                            var I = (int) (  tmpColor.R * 0.299
+                            var I = (int) (tmpColor.R * 0.299
                                            + tmpColor.G * 0.587
                                            + tmpColor.B * 0.114);
 
                             Color img2Color = Color.FromArgb(I, I, I);
-                            
+
                             psnrY += Math.Pow(img1Color.R - img2Color.R, 2);
                         }
                     }
                 }
             }
 
-            psnrY = 10 * Math.Log10((width * height * Math.Pow((Math.Pow(2, 8) - 1), 2)) / psnrY);
+            psnrY = 10 * Math.Log10(width * height * Math.Pow(Math.Pow(2, 8) - 1, 2) / psnrY);
             /*Console.WriteLine($"Y: {psnrY}");*/
             return psnrY;
         }
@@ -75,7 +72,7 @@ namespace ImageFilter
                 throw new FileNotFoundException(filePath);
             }
 
-            this.ImagePath = filePath;
+            ImagePath = filePath;
 
             // Open a file stream
 
@@ -107,7 +104,23 @@ namespace ImageFilter
 
         public ImageLoader AddNoise(INoise noise)
         {
-            this.Image = noise.ProcessPicture(this);
+            Image = noise.ProcessPicture(this);
+
+            return this;
+        }
+
+        public ImageLoader AddBoxFilter(int size)
+        {
+            var boxFilter = new BoxFilter(size);
+            Image = boxFilter.ProcessPicture(this);
+
+            return this;
+        }
+
+        public ImageLoader AddGaussFilter(int size, double sigma)
+        {
+            var boxFilter = new GaussFilter(size, sigma);
+            Image = boxFilter.ProcessPicture(this);
 
             return this;
         }
@@ -116,12 +129,12 @@ namespace ImageFilter
 
         ~ImageLoader()
         {
-            this.Dispose(false);
+            Dispose(false);
         }
 
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
 
             // Already cleaned up in dispose method, supress GC
             GC.SuppressFinalize(this);
@@ -129,19 +142,21 @@ namespace ImageFilter
 
         private void Dispose(bool disposing)
         {
-            if (this.isDisposed)
+            if (isDisposed)
+            {
                 return;
+            }
 
             if (disposing)
             {
-                if (this.Image != null)
+                if (Image != null)
                 {
-                    this.Image.Dispose();
-                    this.Image = null;
+                    Image.Dispose();
+                    Image = null;
                 }
             }
 
-            this.isDisposed = true;
+            isDisposed = true;
         }
 
         #endregion

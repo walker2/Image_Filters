@@ -25,11 +25,64 @@ namespace ImageFilter
 
                 /* NOISES */
                 Noise(file);
+
+                /* BOXFILTER */
+                BoxFilter(file, outputFileName);
+
+                /* GAUSSFILTER */
+                GaussFilter(file, outputFileName);
+            }
+        }
+
+        private static void GaussFilter(FileInfo file, string outputFileName)
+        {
+            Console.WriteLine("***GAUSS FILTER***");
+
+            if (file == null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(file.FullName);
+                Image image = imageLoader.Image;
+                imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25)));
+                imageLoader.Save($"{outputFileName}noise{file.Extension}");
+                Console.WriteLine($"psnr-noise:     {imageLoader.CalculatePSNR(image):F2}");
+
+                imageLoader.AddGaussFilter(5, 1.4);
+                imageLoader.Save($"{outputFileName}gaussfiltered{file.Extension}");
+                Console.WriteLine($"psnr-gaussfilter: {imageLoader.CalculatePSNR(image):F2}");
+            }
+        }
+
+        private static void BoxFilter(FileInfo file, string outputFileName)
+        {
+            Console.WriteLine("***BOX FILTER***");
+
+            if (file == null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(file.FullName);
+                Image image = imageLoader.Image;
+                imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25)));
+                imageLoader.Save($"{outputFileName}noise{file.Extension}");
+                Console.WriteLine($"psnr-noise:     {imageLoader.CalculatePSNR(image):F2}");
+
+                imageLoader.AddBoxFilter(5);
+                imageLoader.Save($"{outputFileName}boxfiltered{file.Extension}");
+                Console.WriteLine($"psnr-boxfilter: {imageLoader.CalculatePSNR(image):F2}");
             }
         }
 
         private static void Noise(FileInfo file)
         {
+            Console.WriteLine("***ADDING NOISES***");
             if (file == null)
             {
                 throw new ArgumentNullException(nameof(file));
