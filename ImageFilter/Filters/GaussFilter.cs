@@ -16,6 +16,7 @@ namespace ImageFilter.Filters
 
         public GaussFilter(int maskSize, double sigma)
         {
+            /* Mask size as radius */
             this.maskSize = maskSize;
             this.sigma = sigma;
         }

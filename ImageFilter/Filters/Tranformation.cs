@@ -44,16 +44,16 @@ namespace ImageFilter
         public double[,] CreateGaussFilter(int maskSize)
         {
             double[,] mask = GenerateGaussMask(maskSize);
-
+            var actualSize = maskSize * 2 + 1;
             double min = mask[0, 0];
 
             // Convert to integer blur mask
-            var intKernel = new double[maskSize, maskSize];
+            var intKernel = new double[actualSize, actualSize];
             var divider = 0;
 
-            for (var i = 0; i < maskSize; i++)
+            for (var i = 0; i < actualSize; i++)
             {
-                for (var j = 0; j < maskSize; j++)
+                for (var j = 0; j < actualSize; j++)
                 {
                     double v = mask[i, j] / min;
 
@@ -101,7 +101,7 @@ namespace ImageFilter
                                 // The number of mask elements taken into account
                                 int processedSize;
 
-                                // Colour sums
+                                // Color sums
                                 double blue;
                                 double divider;
                                 double green;
@@ -210,15 +210,16 @@ namespace ImageFilter
 
         private double[,] GenerateGaussMask(int maskSize)
         {
-            var mask = new double[maskSize, maskSize];
+            var actualSize = maskSize * 2 + 1;
+            var mask = new double[actualSize, actualSize];
 
-            int midpoint = maskSize / 2;
+            int midpoint = actualSize / 2;
 
-            for (var i = 0; i < maskSize; i++)
+            for (var i = 0; i < actualSize; i++)
             {
                 int x = i - midpoint;
 
-                for (var j = 0; j < maskSize; j++)
+                for (var j = 0; j < actualSize; j++)
                 {
                     int y = j - midpoint;
                     double gxy = GetGaussian(x, y);

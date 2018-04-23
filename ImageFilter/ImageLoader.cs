@@ -125,6 +125,14 @@ namespace ImageFilter
             return this;
         }
 
+        public ImageLoader AddMedianFilter(int size)
+        {
+            var medianFilter = new MedianFilter(size);
+            Image = medianFilter.ProcessPicture(this);
+
+            return this;
+        }
+
         #region Dispose
 
         ~ImageLoader()

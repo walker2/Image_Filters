@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using ImageFilter.Noises;
 using MathNet.Numerics.Distributions;
 using NUnit.Framework;
 using OxyPlot;
-using OxyPlot.Wpf;
+using OxyPlot.WindowsForms;
 using LineSeries = OxyPlot.Series.LineSeries;
 
 namespace ImageFilter
@@ -18,6 +19,8 @@ namespace ImageFilter
         [STAThread]
         private static void Main(string[] args)
         {
+            Stopwatch timer = new Stopwatch();
+            timer.Start();
             foreach (FileInfo file in TestImages.GetTestImagesFromTestFolder(""))
             {
                 string outputFileName = $"{OutputPath}{file.Name.Substring(0, file.Name.LastIndexOf('.'))}";
@@ -31,6 +34,41 @@ namespace ImageFilter
 
                 /* GAUSSFILTER */
                 GaussFilter(file, outputFileName);
+
+                /* MEDIANFILTER */
+                MedianFilter(file, outputFileName);
+
+
+                var plotBuilder = new PlotBuilder(OutputPath, file);
+                plotBuilder.PlotAll();
+
+                // Just run first image
+                break;
+            }
+            timer.Stop();
+            Console.WriteLine("Runtime: " + timer.ElapsedMilliseconds / 1000.0 + " s");
+        }
+
+        private static void MedianFilter(FileInfo file, string outputFileName)
+        {
+            Console.WriteLine("***MEDIAN FILTER***");
+
+            if (file == null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(file.FullName);
+                Image image = imageLoader.Image;
+                imageLoader.AddNoise(new ImpulseNoise(0.125, 0.125));
+                imageLoader.Save($"{outputFileName}impulsenoise{file.Extension}");
+                Console.WriteLine($"psnr-noise:     {imageLoader.CalculatePSNR(image):F2}");
+
+                imageLoader.AddMedianFilter(2);
+                imageLoader.Save($"{outputFileName}medianfiltered{file.Extension}");
+                Console.WriteLine($"psnr-medianfilter: {imageLoader.CalculatePSNR(image):F2}");
             }
         }
 
@@ -48,10 +86,10 @@ namespace ImageFilter
                 imageLoader.Load(file.FullName);
                 Image image = imageLoader.Image;
                 imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25)));
-                imageLoader.Save($"{outputFileName}noise{file.Extension}");
+                imageLoader.Save($"{outputFileName}gaussnoise{file.Extension}");
                 Console.WriteLine($"psnr-noise:     {imageLoader.CalculatePSNR(image):F2}");
 
-                imageLoader.AddGaussFilter(5, 1.4);
+                imageLoader.AddGaussFilter(4, 1.6);
                 imageLoader.Save($"{outputFileName}gaussfiltered{file.Extension}");
                 Console.WriteLine($"psnr-gaussfilter: {imageLoader.CalculatePSNR(image):F2}");
             }
