@@ -25,10 +25,12 @@ namespace ImageFilter
 
         public void PlotAll()
         {
-            PlotAdditiveNoise();
-            PlotImpulseNoise();
-            PlotGaussFilter();
-            PlotMedianFilter();
+            //PlotAdditiveNoise();
+            //PlotImpulseNoise();
+            //PlotGaussFilter();
+            //PlotGaussR();
+            PlotGaussAll();
+            //PlotMedianFilter();
         }
 
         private void PlotAdditiveNoise()
@@ -88,7 +90,7 @@ namespace ImageFilter
                     };
                     impulsePoints.MarkerType = MarkerType.Circle;
 
-                    for (var p2 = 0.1; p2 <= 0.5; p2 += 0.1)
+                    for (var p2 = 0.0; p2 <= 0.5; p2 += 0.1)
                     {
                         imageLoader.AddNoise(new ImpulseNoise(p1, p2));
 
@@ -105,6 +107,86 @@ namespace ImageFilter
             pngExporter.ExportToFile(plotGauss, $"{outputPath}/{fileInfo.Name}/ImpulseNoisePlot.png");
         }
 
+        void PlotGaussAll()
+        {
+            var plotGauss = new PlotModel { Title = $"Gauss Filter Plot for {fileInfo.Name}" };
+
+            plotGauss.Axes.Add(new LinearAxis { Title = "Sigma", Position = AxisPosition.Bottom });
+            plotGauss.Axes.Add(new LinearAxis { Title = "PSNR", Position = AxisPosition.Left });
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(fileInfo.FullName);
+                Image image = imageLoader.Image;
+                Image noise = imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25))).Image;
+
+                for (var R = 1; R <= 8; R++)
+                {
+                    var points = new LineSeries
+                    {
+                        StrokeThickness = 2,
+                        MarkerSize = 4,
+                        Title = $"R = {R}"
+                    };
+                    points.MarkerType = MarkerType.Circle;
+
+                    for (var sigma = 0.5; sigma <= 3; sigma += 0.5)
+                    {
+                        imageLoader.AddNoise(new GaussNoise(new Normal(0, 100))); //dispersy -- 100
+
+                        imageLoader.AddGaussFilter(R, sigma);
+
+                        double psnr = imageLoader.CalculatePSNR(image);
+
+                        points.Points.Add(new DataPoint(sigma, psnr));
+
+                        imageLoader.Image = image;
+                    }
+
+                    plotGauss.Series.Add(points);
+                }
+            }
+            pngExporter.ExportToFile(plotGauss, $"{outputPath}/{fileInfo.Name}/GaussFilterPlot.png");
+        }
+
+        void PlotGaussR()
+        {
+            var plotGauss = new PlotModel { Title = $"Gauss R with sigma 2 for {fileInfo.Name}" };
+
+            plotGauss.Axes.Add(new LinearAxis { Title = "R", Position = AxisPosition.Bottom });
+            plotGauss.Axes.Add(new LinearAxis { Title = "PSNR", Position = AxisPosition.Left });
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(fileInfo.FullName);
+                Image image = imageLoader.Image;
+
+                var points = new LineSeries
+                {
+                    StrokeThickness = 2,
+                    MarkerSize = 4,
+                    Color = OxyColors.Red
+                };
+
+                for (var R = 1; R <= 8; R++)
+                {
+                    //imageLoader.Image = noise;
+                    imageLoader.AddNoise(new GaussNoise(new Normal(0, 100))); // 100 dispersy
+					imageLoader.AddGaussFilter(R, 2);
+
+					double psnr = imageLoader.CalculatePSNR(image);
+
+					points.Points.Add(new DataPoint(R, psnr));
+
+                    imageLoader.Image = image;
+
+                }
+                plotGauss.Series.Add(points);
+            }
+            pngExporter.ExportToFile(plotGauss, $"{outputPath}/{fileInfo.Name}/GaussFilterPlotR.png");
+
+        }
+
         private void PlotGaussFilter()
         {
             var plotGauss = new PlotModel { Title = $"Gauss Filter Plot for {fileInfo.Name}" };
@@ -116,8 +198,9 @@ namespace ImageFilter
             {
                 imageLoader.Load(fileInfo.FullName);
                 Image image = imageLoader.Image;
+                Image noise = imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25))).Image;
 
-                for (var R = 2; R <= 5; R++)
+                for (var R = 1; R <= 8; R++)
                 {
                     var points = new LineSeries
                     {
@@ -127,9 +210,10 @@ namespace ImageFilter
                     };
                     points.MarkerType = MarkerType.Circle;
 
-                    for (var sigma = 0.5; sigma <= 8; sigma += 0.5)
+                    for (var sigma = 0.5; sigma <= 3; sigma += 0.5)
                     {
-                        imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25)));
+                        imageLoader.Image = noise;
+
                         imageLoader.AddGaussFilter(R, sigma);
 
                         double psnr = imageLoader.CalculatePSNR(image);

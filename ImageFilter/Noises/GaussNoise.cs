@@ -42,7 +42,7 @@ namespace ImageFilter
                                                + currentColor.G * 0.587
                                                + currentColor.B * 0.114);
 
-                                var res = (int) (I + distribution.Sample() * 128).Clamp(byte.MinValue, byte.MaxValue);
+                                var res = (int) (I + distribution.Sample()).Clamp(byte.MinValue, byte.MaxValue);
 
                                 Color output = Color.FromArgb(res, res, res);
 

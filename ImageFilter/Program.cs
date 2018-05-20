@@ -14,7 +14,7 @@ namespace ImageFilter
 {
     internal class Program
     {
-        private static readonly string OutputPath = TestContext.CurrentContext.TestDirectory + @"\output\";
+        private static readonly string OutputPath = TestContext.CurrentContext.TestDirectory + @"/output/";
 
         [STAThread]
         private static void Main(string[] args)
@@ -27,16 +27,16 @@ namespace ImageFilter
                 Console.WriteLine(file.Name);
 
                 /* NOISES */
-                Noise(file);
+                //Noise(file);
 
                 /* BOXFILTER */
-                BoxFilter(file, outputFileName);
+                //BoxFilter(file, outputFileName);
 
                 /* GAUSSFILTER */
-                GaussFilter(file, outputFileName);
+                //GaussFilter(file, outputFileName);
 
                 /* MEDIANFILTER */
-                MedianFilter(file, outputFileName);
+                //MedianFilter(file, outputFileName);
 
 
                 var plotBuilder = new PlotBuilder(OutputPath, file);
