@@ -8,15 +8,18 @@ using NUnit.Framework;
 using OxyPlot;
 using OxyPlot.WindowsForms;
 using OxyPlot.Axes;
-using LineSeries = OxyPlot.Series.LineSeries;
-
-
+using OxyPlot.Series;
 
 namespace ImageFilter
 {
 	public class PlotBuilder
-	{
-		public PlotBuilder(string outputPath, FileInfo fileInfo)
+    {
+
+        private string outputPath;
+        private FileInfo fileInfo;
+        private PngExporter pngExporter = new PngExporter { Width = 1280, Height = 720, Background = OxyColors.White };
+
+        public PlotBuilder(string outputPath, FileInfo fileInfo)
         {
             this.outputPath = outputPath;
             this.fileInfo = fileInfo ?? throw new ArgumentNullException(nameof(fileInfo));
@@ -25,13 +28,13 @@ namespace ImageFilter
 
         public void PlotAll()
         {
-            //PlotAdditiveNoise();
-            //PlotImpulseNoise();
-            //PlotGaussFilter();
-            //PlotGaussR();
+            PlotAdditiveNoise();
+            PlotImpulseNoise();
+            PlotGaussR();
             PlotGaussAll();
-            //PlotMedianFilter();
+            PlotMedianFilter();
         }
+
 
         private void PlotAdditiveNoise()
         {
@@ -51,13 +54,13 @@ namespace ImageFilter
             {
                 imageLoader.Load(fileInfo.FullName);
                 Image image = imageLoader.Image;
-                for (var stddev = 0.0; stddev < 0.8; stddev += 0.025)
+                for (var stddev = 0.0; stddev < 240; stddev += 10)
                 {
                     imageLoader.AddNoise(new GaussNoise(new Normal(0, stddev)));
 
                     double psnr = imageLoader.CalculatePSNR(image);
 
-                    gaussPoints.Points.Add(new DataPoint(stddev * 128, psnr));
+                    gaussPoints.Points.Add(new DataPoint(stddev, psnr));
 
                     imageLoader.Image = image;
                 }
@@ -65,7 +68,6 @@ namespace ImageFilter
             
             plotGauss.Series.Add(gaussPoints);
             pngExporter.ExportToFile(plotGauss, $"{outputPath}/{fileInfo.Name}/AdditiveNoisePlot.png");
-
         }
 
         private void PlotImpulseNoise()
@@ -118,7 +120,7 @@ namespace ImageFilter
             {
                 imageLoader.Load(fileInfo.FullName);
                 Image image = imageLoader.Image;
-                Image noise = imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25))).Image;
+               // Image noise = imageLoader.AddNoise(new GaussNoise(new Normal(0, 0.25))).Image;
 
                 for (var R = 1; R <= 8; R++)
                 {
@@ -276,10 +278,6 @@ namespace ImageFilter
             }
             pngExporter.ExportToFile(plotMedian, $"{outputPath}/{fileInfo.Name}/MedianFilterPlot.png");
         }
-
-        private string outputPath;
-        private FileInfo fileInfo;
-        private PngExporter pngExporter = new PngExporter { Width = 1280, Height = 720, Background = OxyColors.White };
     }
 }
 

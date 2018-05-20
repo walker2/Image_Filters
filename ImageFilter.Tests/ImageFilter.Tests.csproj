@@ -80,6 +80,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Images\lena.bmp" />
+    <Content Include="Images\lenaHigh.bmp" />
+    <Content Include="Images\lenaLow.bmp" />
     <Content Include="Images\pepper.bmp" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />

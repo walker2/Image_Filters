@@ -5,10 +5,12 @@ using System.Drawing;
 using System.IO;
 using ImageFilter.Noises;
 using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Interpolation;
 using NUnit.Framework;
 using OxyPlot;
 using OxyPlot.WindowsForms;
 using LineSeries = OxyPlot.Series.LineSeries;
+using ImageFilter.Extensions;
 
 namespace ImageFilter
 {
@@ -21,7 +23,9 @@ namespace ImageFilter
         {
             Stopwatch timer = new Stopwatch();
             timer.Start();
-            foreach (FileInfo file in TestImages.GetTestImagesFromTestFolder(""))
+            var original = TestImages.GetTestImagesFromTestFolder("");
+
+            foreach (FileInfo file in original)
             {
                 string outputFileName = $"{OutputPath}{file.Name.Substring(0, file.Name.LastIndexOf('.'))}";
                 Console.WriteLine(file.Name);
@@ -38,15 +42,168 @@ namespace ImageFilter
                 /* MEDIANFILTER */
                 //MedianFilter(file, outputFileName);
 
+                /* LAPLACIANFILTER */
+                //LaplacianFilter(file, outputFileName);
 
-                var plotBuilder = new PlotBuilder(OutputPath, file);
-                plotBuilder.PlotAll();
+                /* SOBELFILTER */
+                //SobelFilter(file, outputFileName);
+
+                //var plotBuilder = new PlotBuilder(OutputPath, file);
+                //plotBuilder.PlotAll();
 
                 // Just run first image
                 break;
             }
+
+            var modified = TestImages.GetTestImagesFromTestFolder("/LowHigh/");
+            foreach (FileInfo file in modified)
+            {
+                string outputFileName = $"{OutputPath}{file.Name.Substring(0, file.Name.LastIndexOf('.'))}";
+                Console.WriteLine(file.Name);
+                /* TWODOTGRAD */
+                TwoDotGrad(file, outputFileName);
+            }
+
             timer.Stop();
             Console.WriteLine("Runtime: " + timer.ElapsedMilliseconds / 1000.0 + " s");
+        }
+        
+
+        private static double LinearInterpolation(double x, double x0, double x1, double y0, double y1)
+        {
+            if ((x1 - x0) == 0)
+            {
+                return (y0 + y1) / 2;
+            }
+            return y0 + (x - x0) * (y1 - y0) / (x1 - x0);
+        }
+
+        private static void TwoDotGrad(FileInfo file, string outputFileName)
+        {
+            double[] a = { 0, 65, 180, 255 };
+            double[] b = { 0, 40, 210, 255 };
+
+            var f = MathNet.Numerics.Interpolate.Linear(a, b);
+            
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(file.FullName);
+                imageLoader.AddNoise(new GaussNoise(new Normal(0.0001, 0.0001)));
+                Bitmap image = (Bitmap) imageLoader.Image;
+
+                int height = image.Height;
+                int width = image.Width;
+                for (var y = 0; y < height; y++)
+                {
+                    for (var x = 0; x < width; x++)
+                    {
+                        double color = f.Interpolate(image.GetPixel(x, y).R);
+                        Color destinationColor = Color.FromArgb(
+                                        Convert.ToByte(color.Clamp(0, 255)),
+                                        Convert.ToByte(color.Clamp(0, 255)),
+                                        Convert.ToByte(color.Clamp(0, 255)));
+
+                        image.SetPixel(x, y, destinationColor);
+                    }
+                }
+
+                imageLoader.Image = image;
+                imageLoader.Save($"{outputFileName}_gradation_{file.Extension}");
+            }
+                
+        }
+
+        private static void SobelFilter(FileInfo file, string outputFileName)
+        {
+            Console.WriteLine("***SOBEL FILTER***");
+
+            if (file == null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(file.FullName);
+                imageLoader.AddNoise(new GaussNoise(new Normal(0.0001, 0.0001)));
+                Image I = imageLoader.Image;
+
+                //Image Gh = imageLoader.AddSobelFilter("H").Image;
+                //imageLoader.Save($"{outputFileName}_GH_sobel{file.Extension}");
+                //imageLoader.Image = I;
+                //Image Gv = imageLoader.AddSobelFilter("V").Image;
+                //imageLoader.Save($"{outputFileName}_GV_sobel{file.Extension}");
+
+                double[,] Gv = imageLoader.GetSobelFilterDouble("V");
+                double[,] Gh = imageLoader.GetSobelFilterDouble("H");
+
+                Image ColorMap = Filters.SobelFilter.GetColorMap(Gv, Gh);
+
+                imageLoader.Image = ColorMap;
+                imageLoader.Save($"{outputFileName}_sobel_ColorMap_{file.Extension}");
+
+                for (int thr = 15; thr < 200; thr += 10)
+                {
+                    Image BinaryCard = Filters.SobelFilter.GetBinaryCard(thr, Gv, Gh);
+                    imageLoader.Image = BinaryCard;
+                    imageLoader.Save($"{outputFileName}_sobel_BinaryCard_(thr={thr}){file.Extension}");
+                }
+            }
+        }
+
+        private static void LaplacianFilter(FileInfo file, string outputFileName)
+        {
+            Console.WriteLine("***LAPLACIAN FILTER***");
+
+            if (file == null)
+            {
+                throw new ArgumentNullException(nameof(file));
+            }
+            double[] alphas = { 0, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 };
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(file.FullName);
+                imageLoader.AddNoise(new GaussNoise(new Normal(0.0001, 0.0001)));
+
+                Image I = imageLoader.Image;
+                Console.WriteLine($"Avg luma of src: {imageLoader.CalculateAvgLuminocity()}");
+
+                imageLoader.PlotHistogram("src", OutputPath, file);
+
+                foreach (var alpha in alphas)
+                {
+                    if (alpha == 0)
+                    {
+                        Image I1 = imageLoader.AddLaplacianFilter(alpha).Image;
+                        imageLoader.Save($"{outputFileName}_I1_laplacianfiltered{file.Extension}");
+
+                        Console.WriteLine($"Avg luma of I1: {imageLoader.CalculateAvgLuminocity()}");
+                        imageLoader.PlotHistogram("I1", OutputPath, file);
+
+                        imageLoader.Add128();
+                        imageLoader.Save($"{outputFileName}_I1+128_laplacianfiltered{file.Extension}");
+
+                        Console.WriteLine($"Avg luma of I1 + 128: {imageLoader.CalculateAvgLuminocity()}");
+                        imageLoader.PlotHistogram("I1+128", OutputPath, file);
+
+                        imageLoader.AddImage(I);
+                        imageLoader.Save($"{outputFileName}_I2_laplacianfiltered{file.Extension}");
+
+                        Console.WriteLine($"Avg luma of I2: {imageLoader.CalculateAvgLuminocity()}");
+                        imageLoader.PlotHistogram("I2", OutputPath, file);
+                    }
+                    else
+                    {
+                        imageLoader.AddLaplacianFilter(alpha);
+                        imageLoader.Save($"{outputFileName}laplacianfiltered_(alpha={alpha}){file.Extension}");
+
+                        Console.WriteLine($"Avg luma of alpha = {alpha}: {imageLoader.CalculateAvgLuminocity()}");
+                        imageLoader.PlotHistogram($"alpha={alpha}", OutputPath, file);
+                    }
+
+                    imageLoader.Image = I;
+                }               
+            }
         }
 
         private static void MedianFilter(FileInfo file, string outputFileName)

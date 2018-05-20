@@ -21,7 +21,6 @@ namespace ImageFilter.Filters
             return x.R.CompareTo(y.R);
         }
         
-
         public Bitmap ProcessPicture(ImageLoader loader)
         {
             var image = (Bitmap)loader.Image;

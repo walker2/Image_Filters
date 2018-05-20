@@ -72,6 +72,7 @@
     <Compile Include="Filters\GaussFilter.cs" />
     <Compile Include="Filters\MedianFilter.cs" />
     <Compile Include="IPictureProcessor.cs" />
+    <Compile Include="Filters\LaplacianFilter.cs" />
     <Compile Include="Noises\GaussNoise.cs" />
     <Compile Include="ImageLoader.cs" />
     <Compile Include="Noises\ImpulseNoise.cs" />
@@ -79,6 +80,7 @@
     <Compile Include="PlotBuilder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Filters\SobelFilter.cs" />
     <Compile Include="TestImages.cs" />
     <Compile Include="Filters\Tranformation.cs" />
   </ItemGroup>

@@ -12,7 +12,7 @@ namespace ImageFilter
 
         public static IEnumerable<FileInfo> GetTestImagesFromTestFolder(string additionalPath)
         {
-            if (images != null) return images;
+            //if (images != null) return images;
 
             var directory =
                 new DirectoryInfo(Path.GetFullPath(

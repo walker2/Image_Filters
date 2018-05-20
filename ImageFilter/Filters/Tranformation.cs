@@ -5,7 +5,7 @@ using ImageFilter.Extensions;
 
 namespace ImageFilter
 {
-    internal class Tranformation
+    public class Tranformation
     {
         private readonly double stdDev = 1.4;
 
@@ -21,6 +21,26 @@ namespace ImageFilter
         private int Threshold { get; set; }
         private double Divider { get; set; }
         private bool UseDynamicDividerForEdges { get; } = true;
+
+        public double[,] CreateLaplacianFilter(double alpha)
+        {
+            if (alpha == 0)
+            {
+                return new double[,] {
+                    { 0, -1, 0 },
+                    { -1, 4, -1 }, 
+                    { 0, -1, 0 }
+                };
+            }
+            else
+            {
+                return new double[,] { 
+                    { 0, -1, 0 },
+                    { -1, alpha + 4, -1 },
+                    { 0, -1, 0 }
+                };
+            }
+        }
 
         public double[,] CreateBoxBlurFilter(int maskSize)
         {
@@ -43,35 +63,23 @@ namespace ImageFilter
 
         public double[,] CreateGaussFilter(int maskSize)
         {
-            double[,] mask = GenerateGaussMask(maskSize);
-            var actualSize = maskSize * 2 + 1;
-            double min = mask[0, 0];
-
-            // Convert to integer blur mask
-            var intKernel = new double[actualSize, actualSize];
-            var divider = 0;
-
-            for (var i = 0; i < actualSize; i++)
+            int maskLength = 2 * maskSize + 1;
+            var mask = new double[maskLength, maskLength];
+            double z = 0.0;
+            for (int i = 0; i < maskLength; i++)
             {
-                for (var j = 0; j < actualSize; j++)
+                for (int j = 0; j < maskLength; j++)
                 {
-                    double v = mask[i, j] / min;
-
-                    if (v > ushort.MaxValue)
-                    {
-                        v = ushort.MaxValue;
-                    }
-
-                    intKernel[i, j] = (int) v;
-
-                    // Collect the divider
-                    divider += (int) intKernel[i, j];
+                    int x = i - maskSize;
+                    int y = j - maskSize;
+                    mask[i, j] = Math.Exp(-(Math.Pow(x, 2) + Math.Pow(y, 2)) / (2.0 * Math.Pow(stdDev, 2)));
+                    z += mask[i, j];
                 }
             }
 
-            // Update filter
-            Divider = divider;
-            return intKernel;
+            Divider = z;
+
+            return mask;
         }
 
         public Bitmap ProcessMask(Bitmap src, double[,] mask, bool fixGamma)
@@ -140,11 +148,6 @@ namespace ImageFilter
                                         // ReSharper disable once AccessToDisposedClosure
                                         Color sourceColor = srcBMP.GetPixel(offsetX, offsetY);
 
-                                        /*if (fixGamma)
-                                            {
-                                                sourceColor = PixelOperations.ToLinear(sourceColor);
-                                            }*/
-
                                         double k = mask[i, j];
                                         divider += k;
 
@@ -190,12 +193,7 @@ namespace ImageFilter
                                     Convert.ToByte(red.Clamp(0, 255)),
                                     Convert.ToByte(green.Clamp(0, 255)),
                                     Convert.ToByte(blue.Clamp(0, 255)));
-
-                                /*if (fixGamma)
-                                {
-                                    destinationColor = PixelOperations.ToSRGB(destinationColor);
-                                }*/
-
+                                
                                 // ReSharper disable once AccessToDisposedClosure
                                 destBMP.SetPixel(x, y, destinationColor);
                             }
@@ -208,39 +206,113 @@ namespace ImageFilter
             return dest;
         }
 
-        private double[,] GenerateGaussMask(int maskSize)
+        public double[,] ProcessMaskDouble(Bitmap src, double[,] mask, bool fixGamma)
         {
-            var actualSize = maskSize * 2 + 1;
-            var mask = new double[actualSize, actualSize];
+            int width = src.Width;
+            int height = src.Height;
+            var dest = new double[height, width];
 
-            int midpoint = actualSize / 2;
-
-            for (var i = 0; i < actualSize; i++)
+            using (var srcBMP = new ConcurrentBitmap(src))
             {
-                int x = i - midpoint;
+                int maskLength = mask.GetLength(0);
+                int radius = maskLength >> 1;
+                int maskSize = maskLength * maskLength;
+                int threshold = Threshold;
 
-                for (var j = 0; j < actualSize; j++)
-                {
-                    int y = j - midpoint;
-                    double gxy = GetGaussian(x, y);
-                    mask[i, j] = gxy;
-                }
+                // For each line
+                Parallel.For(
+                    0,
+                    height,
+                    y =>
+                    {
+                        // For each pixel
+                        for (var x = 0; x < width; x++)
+                        {
+                            // The number of mask elements taken into account
+                            int processedSize;
+
+                            // Color sums
+                            double blue;
+                            double divider;
+                            double green;
+                            double red = green = blue = divider = processedSize = 0;
+
+                            // For each kernel row
+                            for (var i = 0; i < maskLength; i++)
+                            {
+                                int ir = i - radius;
+                                int offsetY = y + ir;
+
+                                // Skip the current row
+                                if (offsetY < 0)
+                                {
+                                    continue;
+                                }
+
+                                // Outwith the current bounds so break.
+                                if (offsetY >= height)
+                                {
+                                    break;
+                                }
+
+                                // For each kernel column
+                                for (var j = 0; j < maskLength; j++)
+                                {
+                                    int jr = j - radius;
+                                    int offsetX = x + jr;
+
+                                    // Skip the column
+                                    if (offsetX < 0 || offsetX >= width)
+                                    {
+                                        continue;
+                                    }
+
+                                    // ReSharper disable once AccessToDisposedClosure
+                                    Color sourceColor = srcBMP.GetPixel(offsetX, offsetY);
+
+                                    double k = mask[i, j];
+                                    divider += k;
+
+                                    red += k * sourceColor.R;
+                                    green += k * sourceColor.G;
+                                    blue += k * sourceColor.B;
+
+                                    processedSize++;
+                                }
+                            }
+
+                            // Check to see if all kernel elements were processed
+                            if (processedSize == maskSize)
+                            {
+                                // All kernel elements are processed; we are not on the edge.
+                                divider = Divider;
+                            }
+                            else
+                            {
+                                // We are on an edge; do we need to use dynamic divider or not?
+                                if (!UseDynamicDividerForEdges)
+                                {
+                                    // Apply the set divider.
+                                    divider = Divider;
+                                }
+                            }
+
+                            // Check and apply the divider
+                            if ((long)divider != 0)
+                            {
+                                red /= divider;
+                                green /= divider;
+                                blue /= divider;
+                            }
+                            dest[y, x] = red;
+                        }
+                    }
+                );                
             }
 
-            return mask;
+
+            return dest;
         }
 
-        private double GetGaussian(double x, double y)
-        {
-            double denominator = 2 * Math.PI * Math.Pow(stdDev, 2);
-
-            double exponentNumerator = -x * x + -y * y;
-            double exponentDenominator = 2 * Math.Pow(stdDev, 2);
-
-            double left = 1.0 / denominator;
-            double right = Math.Exp(exponentNumerator / exponentDenominator);
-
-            return left * right;
-        }
     }
 }
