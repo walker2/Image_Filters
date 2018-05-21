@@ -33,6 +33,7 @@ namespace ImageFilter
             PlotGaussR();
             PlotGaussAll();
             PlotMedianFilter();
+            PlotBoxR();
         }
 
 
@@ -151,6 +152,43 @@ namespace ImageFilter
             pngExporter.ExportToFile(plotGauss, $"{outputPath}/{fileInfo.Name}/GaussFilterPlot.png");
         }
 
+        void PlotBoxR()
+        {
+            var plotGauss = new PlotModel { Title = $"Box R for {fileInfo.Name}" };
+
+            plotGauss.Axes.Add(new LinearAxis { Title = "R", Position = AxisPosition.Bottom });
+            plotGauss.Axes.Add(new LinearAxis { Title = "PSNR", Position = AxisPosition.Left });
+
+            using (var imageLoader = new ImageLoader())
+            {
+                imageLoader.Load(fileInfo.FullName);
+                Image image = imageLoader.Image;
+
+                var points = new LineSeries
+                {
+                    StrokeThickness = 2,
+                    MarkerSize = 4,
+                    Color = OxyColors.Red
+                };
+
+                for (var R = 1; R <= 8; R++)
+                {
+                    //imageLoader.Image = noise;
+                    imageLoader.AddNoise(new GaussNoise(new Normal(0, 50))); // 100 dispersy
+                    imageLoader.AddBoxFilter(R);
+
+                    double psnr = imageLoader.CalculatePSNR(image);
+
+                    points.Points.Add(new DataPoint(R, psnr));
+
+                    imageLoader.Image = image;
+
+                }
+                plotGauss.Series.Add(points);
+            }
+            pngExporter.ExportToFile(plotGauss, $"{outputPath}/{fileInfo.Name}/BoxFilterPlotR.png");
+
+        }
         void PlotGaussR()
         {
             var plotGauss = new PlotModel { Title = $"Gauss R with sigma 2 for {fileInfo.Name}" };
@@ -173,7 +211,7 @@ namespace ImageFilter
                 for (var R = 1; R <= 8; R++)
                 {
                     //imageLoader.Image = noise;
-                    imageLoader.AddNoise(new GaussNoise(new Normal(0, 100))); // 100 dispersy
+                    imageLoader.AddNoise(new GaussNoise(new Normal(0, 35))); // 100 dispersy
 					imageLoader.AddGaussFilter(R, 2);
 
 					double psnr = imageLoader.CalculatePSNR(image);

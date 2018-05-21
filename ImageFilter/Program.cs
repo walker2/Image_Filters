@@ -31,28 +31,29 @@ namespace ImageFilter
                 Console.WriteLine(file.Name);
 
                 /* NOISES */
-                //Noise(file);
+                Noise(file);
 
                 /* BOXFILTER */
-                //BoxFilter(file, outputFileName);
+                BoxFilter(file, outputFileName);
 
                 /* GAUSSFILTER */
-                //GaussFilter(file, outputFileName);
+                GaussFilter(file, outputFileName);
 
                 /* MEDIANFILTER */
-                //MedianFilter(file, outputFileName);
+                MedianFilter(file, outputFileName);
 
                 /* LAPLACIANFILTER */
-                //LaplacianFilter(file, outputFileName);
+                LaplacianFilter(file, outputFileName);
 
                 /* SOBELFILTER */
-                //SobelFilter(file, outputFileName);
+                SobelFilter(file, outputFileName);
 
-                //var plotBuilder = new PlotBuilder(OutputPath, file);
-                //plotBuilder.PlotAll();
+                var plotBuilder = new PlotBuilder(OutputPath, file);
+                plotBuilder.PlotAll();
 
                 // Just run first image
                 break;
+                
             }
 
             var modified = TestImages.GetTestImagesFromTestFolder("/LowHigh/");
@@ -91,6 +92,7 @@ namespace ImageFilter
                 imageLoader.AddNoise(new GaussNoise(new Normal(0.0001, 0.0001)));
                 Bitmap image = (Bitmap) imageLoader.Image;
 
+                imageLoader.PlotHistogram("before", OutputPath, file);
                 int height = image.Height;
                 int width = image.Width;
                 for (var y = 0; y < height; y++)
@@ -109,6 +111,7 @@ namespace ImageFilter
 
                 imageLoader.Image = image;
                 imageLoader.Save($"{outputFileName}_gradation_{file.Extension}");
+                imageLoader.PlotHistogram("after", OutputPath, file);
             }
                 
         }
