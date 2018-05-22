@@ -31,16 +31,16 @@ namespace ImageFilter
                 Console.WriteLine(file.Name);
 
                 /* NOISES */
-                Noise(file);
+                //Noise(file);
 
                 /* BOXFILTER */
-                BoxFilter(file, outputFileName);
+                //BoxFilter(file, outputFileName);
 
                 /* GAUSSFILTER */
-                GaussFilter(file, outputFileName);
+                //GaussFilter(file, outputFileName);
 
                 /* MEDIANFILTER */
-                MedianFilter(file, outputFileName);
+                //MedianFilter(file, outputFileName);
 
                 /* LAPLACIANFILTER */
                 LaplacianFilter(file, outputFileName);
@@ -48,8 +48,8 @@ namespace ImageFilter
                 /* SOBELFILTER */
                 SobelFilter(file, outputFileName);
 
-                var plotBuilder = new PlotBuilder(OutputPath, file);
-                plotBuilder.PlotAll();
+                //var plotBuilder = new PlotBuilder(OutputPath, file);
+                //plotBuilder.PlotAll();
 
                 // Just run first image
                 break;
@@ -177,19 +177,21 @@ namespace ImageFilter
                 {
                     if (alpha == 0)
                     {
-                        Image I1 = imageLoader.AddLaplacianFilter(alpha).Image;
-                        imageLoader.Save($"{outputFileName}_I1_laplacianfiltered{file.Extension}");
+                        double[,] I1 = imageLoader.AddLaplacianFilterAlpha0();
+                        //imageLoader.Save($"{outputFileName}_I1_laplacianfiltered{file.Extension}");
 
-                        Console.WriteLine($"Avg luma of I1: {imageLoader.CalculateAvgLuminocity()}");
-                        imageLoader.PlotHistogram("I1", OutputPath, file);
+                        //Console.WriteLine($"Avg luma of I1: {imageLoader.CalculateAvgLuminocity()}");
+                        //imageLoader.PlotHistogram("I1", OutputPath, file);
 
-                        imageLoader.Add128();
+                        imageLoader.Add128(I1);
                         imageLoader.Save($"{outputFileName}_I1+128_laplacianfiltered{file.Extension}");
 
                         Console.WriteLine($"Avg luma of I1 + 128: {imageLoader.CalculateAvgLuminocity()}");
                         imageLoader.PlotHistogram("I1+128", OutputPath, file);
+                        imageLoader.Image = I;
 
-                        imageLoader.AddImage(I);
+
+                        imageLoader.AddImage(I, I1);
                         imageLoader.Save($"{outputFileName}_I2_laplacianfiltered{file.Extension}");
 
                         Console.WriteLine($"Avg luma of I2: {imageLoader.CalculateAvgLuminocity()}");
